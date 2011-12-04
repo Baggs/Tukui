@@ -30,9 +30,6 @@ function AB:Initialize()
 	self:SecureHook('PetActionBar_Update', 'UpdatePet')
 	self:SecureHook('ActionButton_UpdateHotkeys', 'FixKeybindText')
 	self:SecureHook("ActionButton_UpdateFlyout", 'StyleFlyout')
-	self:RawHook('ActionButton_HideGrid', E.noop, true)
-	SetActionBarToggles(1, 1, 1, 1, 0)
-	SetCVar("alwaysShowActionBars", 0)
 	
 	self:CreateActionBars()
 	self:LoadKeyBinder()
@@ -139,18 +136,12 @@ function AB:StyleButton(button, noResize, noBackdrop)
 	local normal2 = button:GetNormalTexture()
 	local shine = _G[name.."Shine"];
 	local combat = InCombatLockdown()
-	
 
-	
 	if flash then flash:SetTexture(nil); end
 	if normal then normal:SetTexture(nil); normal:Hide(); normal:SetAlpha(0); end	
 	if normal2 then normal2:SetTexture(nil); normal2:Hide(); normal2:SetAlpha(0); end	
 	if border then border:Kill(); end
-	
-	if button:GetScale() > 0.5 then
-		button:SetAlpha(1)
-	end
-		
+			
 	if not button.noResize then
 		button.noResize = noResize;
 	end
@@ -166,7 +157,8 @@ function AB:StyleButton(button, noResize, noBackdrop)
 	end
 	
 	if E:IsPTRVersion() and _G[name..'FloatingBG'] then
-		_G[name..'FloatingBG']:Kill()
+		_G[name..'FloatingBG']:Hide()
+		_G[name..'FloatingBG']:SetAlpha(0)
 	end	
 	
 	if macroName then
@@ -216,7 +208,7 @@ function AB:StyleButton(button, noResize, noBackdrop)
 		button.style:SetParent(button.backdrop)
 		button.style:SetDrawLayer('BACKGROUND', -7)	
 	end
-	
+		
 	self:FixKeybindText(button);
 	button:StyleButton();
 	self["handledbuttons"][button] = true;
@@ -285,8 +277,6 @@ function AB:DisableBlizzard()
 		"PETACTIONBAR_YPOS",
 		"MultiCastActionBarFrame",
 		"MULTICASTACTIONBAR_YPOS",
-		--"ChatFrame1",
-		--"ChatFrame2",
 	};
 	for _, frame in pairs(uiManagedFrames) do
 		UIPARENT_MANAGED_FRAME_POSITIONS[frame] = nil;
@@ -325,10 +315,11 @@ function AB:FixKeybindText(button, type)
 		text = gsub(text, KEY_DELETE, L['KEY_DELETE']);
 		text = gsub(text, KEY_MOUSEWHEELUP, L['KEY_MOUSEWHEELUP']);
 		text = gsub(text, KEY_MOUSEWHEELDOWN, L['KEY_MOUSEWHEELDOWN']);
-		
+
 		if hotkey:GetText() == RANGE_INDICATOR then
-			hotkey:SetText('');
+			hotkey:SetAlpha(0)
 		else
+			hotkey:SetAlpha(1)
 			hotkey:SetText(text);
 		end
 	end
@@ -466,6 +457,13 @@ function AB:CreateMover(bar, text, name, padding)
 		self:SetTemplate("Default", true)
 	end)
 	
+	mover:RegisterEvent('PLAYER_REGEN_DISABLED')
+	mover:SetScript('OnEvent', function(self)
+		if self:IsShown() then
+			self:Hide()
+		end
+	end)
+	
 	mover:SetMovable(true)
 	mover:Hide()	
 	bar.mover = mover
@@ -485,7 +483,9 @@ local function SetupFlyoutButton()
 				if not AB["handledbuttons"][parentAnchorButton] then return end
 				
 				local parentAnchorBar = parentAnchorButton:GetParent()
-				AB:Bar_OnEnter(parentAnchorBar)
+				if parentAnchorBar.mouseover then
+					AB:Bar_OnEnter(parentAnchorBar)
+				end
 			end)
 			_G["SpellFlyoutButton"..i]:HookScript('OnLeave', function(self)
 				local parent = self:GetParent()
@@ -494,7 +494,9 @@ local function SetupFlyoutButton()
 				
 				local parentAnchorBar = parentAnchorButton:GetParent()
 				
-				AB:Bar_OnLeave(parentAnchorBar)	
+				if parentAnchorBar.mouseover then
+					AB:Bar_OnLeave(parentAnchorBar)	
+				end
 			end)
 		end
 	end
@@ -504,7 +506,9 @@ local function SetupFlyoutButton()
 		if not AB["handledbuttons"][anchorButton] then return end
 		
 		local parentAnchorBar = anchorButton:GetParent()
-		AB:Bar_OnEnter(parentAnchorBar)
+		if parentAnchorBar.mouseover then
+			AB:Bar_OnEnter(parentAnchorBar)
+		end
 	end)
 	
 	SpellFlyout:HookScript('OnLeave', function(self)
@@ -512,7 +516,9 @@ local function SetupFlyoutButton()
 		if not AB["handledbuttons"][anchorButton] then return end
 		
 		local parentAnchorBar = anchorButton:GetParent()
-		AB:Bar_OnLeave(parentAnchorBar)	
+		if parentAnchorBar.mouseover then
+			AB:Bar_OnLeave(parentAnchorBar)	
+		end
 	end)	
 end
 SpellFlyout:HookScript("OnShow", SetupFlyoutButton)
