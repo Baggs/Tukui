@@ -184,8 +184,6 @@ function AB:CreateBar1()
 		control:ChildUpdate("state", newstate)
 	]]);
 	
-	bar:Hide();
-	
 	bar:SetAttribute("_onstate-show", [[		
 		if newstate == "hide" then
 			self:Hide();
